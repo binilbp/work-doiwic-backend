@@ -4,15 +4,17 @@
 
 ## JSON VALIDATION CLASSES ##
 from pydantic import BaseModel, Field
-from typing import Literal, List
+from typing import TypedDict, Annotated, Literal, List
 
 
-class ChatHistory(BaseModel):
+#TypedDict is used to maintain dict type
+#ChatHistory as a dict can easily be passed to model.invoke() 
+class ChatHistory(TypedDict): 
     '''
         role is used to specify whose message it is, wheather it was sent by ai or user
     '''
-    role : Literal["user", "ai"]
-    content : str = Field(..., description = "the actual message sent by user or agent")
+    role : Literal["user", "assistant"]#using OpenAi messages scheme
+    content : Annotated[str, Field(..., description = "the actual message sent by user or agent")]
 
 
 class ChatRequest(BaseModel):
@@ -45,7 +47,7 @@ from llm import get_chat_model
 try:
     model = get_chat_model()
 except:
-    print("> Failed to get chat model")
+    print("!! Failed to get chat model")
 
 @app.post("/chat")
 async def chat(user_request: ChatRequest) -> str:
@@ -56,10 +58,12 @@ async def chat(user_request: ChatRequest) -> str:
     print("> Received chat request")
     print("> Invoking model")
 
-    # TESTING
-    input_message = user_request.history[0].content
+    messages = user_request.history
+    try:
+        result = model.invoke(messages)
+        return result.text
+    except Exception as e:
+        print(f"!! Failed to invoke model\n{e}")
 
-    result = model.invoke(input_message)
-    return result.text
 
 

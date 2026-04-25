@@ -15,6 +15,6 @@ def get_chat_model():
         model = init_chat_model("google_genai:gemini-2.5-flash-lite")
         return model
     except:
-        print("Failed to load model")
+        print("!! Failed to load model")
 
 
