@@ -11,10 +11,11 @@ load_dotenv()
 # LLM 
 from langchain.chat_models import init_chat_model
 def get_chat_model():
-    try:
-        model = init_chat_model("google_genai:gemini-2.5-flash-lite")
-        return model
-    except:
-        print("!! Failed to load model")
+    model = init_chat_model("groq:llama-3.3-70b-versatile")
+    return model
 
+
+def get_summary_model():
+    model = init_chat_model("groq:llama-3.3-70b-versatile", temperature = 0)
+    return model
 
