@@ -15,7 +15,3 @@ def get_chat_model():
     return model
 
 
-def get_summary_model():
-    model = init_chat_model("groq:llama-3.3-70b-versatile", temperature = 0)
-    return model
-
