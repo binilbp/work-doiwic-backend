@@ -1,53 +1,38 @@
-# This file contains the fastapi end point setup
 
-
-
-
-# getting the chat model from llm.py
 from llm import get_chat_model
 chat_model = get_chat_model()
 
 
 
+ROLE_SYSTEM_PROMPT = """
+You are clarity AI, your task is to read user input and explain his role he is trying to explain in one word
 
-SYSTEM_PROMPT = """
-You are a highly analytical and helpful AI assistant. Your goal is to solve the user's problem, but you MUST fully understand their context first.
-
-RULES:
-1. Review the chat history and the current known context.
-2. If you DO NOT have enough information to give a perfect, tailored answer, ask ONE clarifying question.
-3. If you ask a clarifying question, provide exactly 3 likely answers as `suggestion_bubbles`.
-4. If you DO have enough information, give your final answer and leave `suggestion_bubbles` as an empty list [].
-5. Extract any confirmed facts about the user's situation (e.g., Role, Topic, Budget, Error Code) into `extracted_context` as key-value pairs. 
-6. Always carry over existing context unless the user explicitly changes it.
+IMPORTANT: you must not reply back with normal unneccesary talk, only give back the output format, if there is no enough information,
+set insufficient_info to true, also state what you want in the reply_text 
 
 OUTPUT FORMAT:
 You must output strictly valid JSON matching this schema, with no markdown formatting or extra text:
 {
   "reply_text": "Your conversational response here",
-  "extracted_context": {"Key": "Value"},
-  "suggestion_bubbles": ["Option 1", "Option 2", "Option 3"]
+  "insufficient_info": bool,
+  "role" : "you summary of the role",
 }
-You must output STRICTLY valid JSON. Do not include ANY conversational text before or after the JSON block.
+
 """
+
 
 
 from pydantic import BaseModel, Field
 from typing import TypedDict, Annotated, Literal, List, Dict
 
 
-class ChatHistory(TypedDict): 
-    role : Literal["user", "assistant", "system"]#using OpenAi messages scheme
-    content : Annotated[str, Field(..., description = "the actual message sent by user or agent")]
+class RoleRequest(BaseModel):
+    input: Annotated[str, Field(..., description = "the input message sent by user")]
 
-class ChatRequest(BaseModel):
-    history: List[ChatHistory]
-    current_context: Dict[str, str] = Field(default_factory=dict, description="Current known facts about the user")
-
-class AIResponse(BaseModel):
+class RoleResponse(BaseModel):
     reply_text: str
-    extracted_context: Dict[str, str]
-    suggestion_bubbles: List[str]
+    insufficient_info: bool
+    role: str
 
 
 
@@ -64,7 +49,8 @@ def clean_json_string(raw_str: str) -> str:
     return raw_str.strip()
 
 
-#creating fastapi instance
+
+
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -80,18 +66,16 @@ app.add_middleware(
 
 
 
-
 import json
 
-@app.post("/chat")
-async def chat(request: ChatRequest) -> dict:
-    print("> Received chat request")
-    messages = request.history
+@app.post("/role")
+async def summarize_role(request: RoleRequest) -> dict:
+    print("> Received role summary request")
+    user_input = request.input
     
-    context_str = json.dumps(request.current_context)
-    system_instruction = f"{SYSTEM_PROMPT}\n\nCURRENT CONTEXT: {context_str}"
+    system_instruction = f"{ROLE_SYSTEM_PROMPT}\n\n USER INPUT: {user_input}"
     
-    messages.insert(0, {"role": "system", "content": system_instruction})
+    messages = [{"role": "system", "content": system_instruction}]
 
     print("> Invoking model...")
     try:
@@ -100,10 +84,9 @@ async def chat(request: ChatRequest) -> dict:
         raw_output = clean_json_string(result.text)
         parsed_json = json.loads(raw_output)
         
-        validated_response = AIResponse(**parsed_json)
+        validated_response = RoleResponse(**parsed_json)
         
-        print(f"> Sending structured response with {len(validated_response.suggestion_bubbles)} bubbles.")
-        
+        print(f"> Sending respone: {validated_response}")
         return validated_response.model_dump()
 
     except json.JSONDecodeError as e:
@@ -115,4 +98,63 @@ async def chat(request: ChatRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+
+
+
+
+
+
+
+
+
+
+# class ChatHistory(TypedDict): 
+#
+#     role : Literal["user", "assistant", "system"]
+#     content : Annotated[str, Field(..., description = "the actual message sent by user or agent")]
+#
+# class ChatRequest(BaseModel):
+#     history: List[ChatHistory]
+#     current_context: Dict[str, str] = Field(default_factory=dict, description="Current known facts about the user and user request")
+#
+# class PlanRequest(BaseModel):
+#     context: Dict[str, str] = Field(default_factory=dict, description="Known facts about the user and user request")
+#
+# class AIResponse(BaseModel):
+#     reply_text: str
+#     extracted_context: Dict[str, str]
+#     suggestion_bubbles: List[str]
+#
+# @app.post("/execution_plan")
+# async def query_chat(request: ChatRequest) -> dict:
+#     print("> Received plan request")
+#     messages = request.history
+#
+#     context_str = json.dumps(request.current_context)
+#     system_instruction = f"{QUERY_SYSTEM_PROMPT}\n\nCONTEXT GATHERED UNTIL NOW: {context_str}"
+#
+#     messages.insert(0, {"role": "system", "content": system_instruction})
+#
+#     print("> Invoking model...")
+#     try:
+#         result = chat_model.invoke(messages)
+#
+#         raw_output = clean_json_string(result.text)
+#         parsed_json = json.loads(raw_output)
+#
+#         validated_response = AIResponse(**parsed_json)
+#
+#         # print(f"> Sending structured response plan {}.")
+#
+#         return validated_response.model_dump()
+#
+#     except json.JSONDecodeError as e:
+#         print(f"!! Failed to parse AI JSON: {result.text}")
+#         raise HTTPException(status_code=500, detail="AI returned invalid JSON structure.")
+#
+#     except Exception as e:
+#         print(f"!! Failed to invoke model: {e}")
+#         raise HTTPException(status_code=500, detail=str(e))
+#
 
