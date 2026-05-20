@@ -1,58 +1,8 @@
 
-from llm import get_chat_model
-chat_model = get_chat_model()
-
-
-
-ROLE_SYSTEM_PROMPT = """
-You are clarity AI, your task is to read user input and explain his role he is trying to explain in one word
-
-IMPORTANT: you must not reply back with normal unneccesary talk, only give back the output format, if there is no enough information,
-set insufficient_info to true, also state what you want in the reply_text 
-
-OUTPUT FORMAT:
-You must output strictly valid JSON matching this schema, with no markdown formatting or extra text:
-{
-  "reply_text": "Your conversational response here",
-  "insufficient_info": bool,
-  "role" : "you summary of the role",
-}
-
-"""
-
-
-
-from pydantic import BaseModel, Field
-from typing import TypedDict, Annotated, Literal, List, Dict
-
-
-class RoleRequest(BaseModel):
-    input: Annotated[str, Field(..., description = "the input message sent by user")]
-
-class RoleResponse(BaseModel):
-    reply_text: str
-    insufficient_info: bool
-    role: str
-
-
-
-
-def clean_json_string(raw_str: str) -> str:
-    """Extracts the JSON block even if the LLM adds extra conversational text."""
-    start_idx = raw_str.find('{')
-    end_idx = raw_str.rfind('}')
-    
-    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-        cleaned = raw_str[start_idx:end_idx + 1]
-        return cleaned
-        
-    return raw_str.strip()
-
-
-
-
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+
+from routers import role
 
 app = FastAPI()
 
@@ -64,38 +14,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(role.router)
 
 
-import json
-
-@app.post("/role")
-async def summarize_role(request: RoleRequest) -> dict:
-    print("> Received role summary request")
-    user_input = request.input
-    
-    system_instruction = f"{ROLE_SYSTEM_PROMPT}\n\n USER INPUT: {user_input}"
-    
-    messages = [{"role": "system", "content": system_instruction}]
-
-    print("> Invoking model...")
-    try:
-        result = chat_model.invoke(messages)
-        
-        raw_output = clean_json_string(result.text)
-        parsed_json = json.loads(raw_output)
-        
-        validated_response = RoleResponse(**parsed_json)
-        
-        print(f"> Sending respone: {validated_response}")
-        return validated_response.model_dump()
-
-    except json.JSONDecodeError as e:
-        print(f"!! Failed to parse AI JSON: {result.text}")
-        raise HTTPException(status_code=500, detail="AI returned invalid JSON structure.")
-
-    except Exception as e:
-        print(f"!! Failed to invoke model: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 
