@@ -34,7 +34,7 @@ You must output strictly valid JSON matching this exact schema:
 {
   "reply_text": "Your conversational confirmation or follow-up question here",
   "insufficient_info": bool,
-  "profile": "The extracted profile, or null if insufficient info"
+  "profile": "The extracted profile, or None if insufficient info"
 }
 """
 
