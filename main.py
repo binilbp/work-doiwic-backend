@@ -2,7 +2,7 @@
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import role
+from routers import role, context, profile
 
 app = FastAPI()
 
@@ -15,6 +15,9 @@ app.add_middleware(
 )
 
 app.include_router(role.router)
+app.include_router(context.router)
+
+app.include_router(profile.router)
 
 
 
