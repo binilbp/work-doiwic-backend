@@ -59,11 +59,8 @@ OUTPUT FORMAT:
 
 
 class ContextRequest(BaseModel):
-    input: Annotated[
-            str, 
-            Field(..., description = "the input message sent by user")
-        ]
-    user_info: Dict[str, str] = Field(default_factory=dict, description="Known facts about the user and user request")
+    input: Annotated[str, Field(..., description = "the input message sent by user")]
+    user_info: Dict[str, str | None] = Field(default_factory=dict, description="Known facts about the user and user request")
 
 class ContextResponse(BaseModel):
     reply_text: str

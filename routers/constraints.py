@@ -38,7 +38,7 @@ OUTPUT FORMAT:
 
 class ConstraintsRequest(BaseModel):
     input: Annotated[str, Field(..., description="the input message sent by user")]
-    user_info: Dict[str, str] = Field(default_factory=dict, description="Known facts about the user")
+    user_info: Dict[str, str | None] = Field(default_factory=dict, description="Known facts about the user")
 
 class ConstraintsResponse(BaseModel):
     reply_text: str

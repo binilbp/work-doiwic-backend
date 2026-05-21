@@ -14,8 +14,10 @@ router = APIRouter()
 
 
 RESOURCES_SYSTEM_PROMPT = """
-You are Clarity AI. Your task is to extract the user's available resources (user tools, budget, software, assets, team etc).
-NOTE: user tools here doesnt refer to AI tool calling, its just tools physically usable by the user
+You are Clarity AI. Your task is to extract the resources available to the user from the user input .
+NOTE: 
+    user tools here doesnt refer to AI tool calling, its just tools usable by the user.
+    If the user specify some resources, then just extract it, dont try to ask further questions or ask for further resources.
 
 CRITICAL RULES:
 1. If the input is too obscure, vague, or lacks context about resources:
@@ -39,7 +41,7 @@ OUTPUT FORMAT:
 
 class ResourcesRequest(BaseModel):
     input: Annotated[str, Field(..., description="the input message sent by user")]
-    user_info: Dict[str, str] = Field(default_factory=dict, description="Known facts about the user")
+    user_info: Dict[str, str| None] = Field(default_factory=dict, description="Known facts about the user")
 
 class ResourcesResponse(BaseModel):
     reply_text: str
