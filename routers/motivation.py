@@ -12,10 +12,7 @@ except Exception as e:
     motivation_model = None
 
 class MotivationRequest(BaseModel):
-    user_info: Dict[str, Any] = Field(
-        default_factory=dict, 
-        description="The context object (profile, objectives, current_state, resources, constraints)"
-    )
+    user_input: str
 
 class MotivationResponse(BaseModel):
     mental_state: str
@@ -31,16 +28,7 @@ async def predict_motivation(request: MotivationRequest):
     if not motivation_model:
         raise HTTPException(status_code=500, detail="ML model is not loaded on the server.")
 
-    user_info = request.user_info
-    
-    # Safely extract and combine the text fields
-    raw_input = f"""
-        {user_info.get('profile', '')} 
-        {user_info.get('objectives', '')} 
-        {user_info.get('current_state', '')} 
-        {user_info.get('resources', '')} 
-        {user_info.get('constraints', '')}
-    """
+    raw_input = request.user_input
     
     cleaned_input = raw_input.strip()
     
