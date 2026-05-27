@@ -23,12 +23,14 @@ class MotivationResponse(BaseModel):
 @router.post("/motivation", response_model=MotivationResponse)
 async def predict_motivation(request: MotivationRequest):
     print("> Received motivation prediction request")
+    print("> Input string: ")
 
     # Safety check in case the .pkl file is missing from the server
     if not motivation_model:
         raise HTTPException(status_code=500, detail="ML model is not loaded on the server.")
 
     raw_input = request.user_input
+    print(f"> Input string: {raw_input}")
     
     cleaned_input = raw_input.strip()
     
